@@ -2,8 +2,10 @@ import math
 import matplotlib.pyplot as plt
 import itertools
 
+import numpy as np
+import os
+
 NORM_LEARNING = 0.3
-RFB_NETS = [[0, 0, 0, 0], [0, 0, 1, 1], [1, 0, 0, 0]]
 
 # Создается класс Network, который содержит методы и переменные для обучения и использования нейронной сети
 class Network:
@@ -22,7 +24,7 @@ class Network:
         print("Вектор весов: ", self.synapses)
         print("Выходной вектор: ", self.out_vec())
         print("Суммарная ошибка: ", self.err())
-        print("НОрма ообучения: ", self.norm_learn)
+        print("Норма ообучения: ", self.norm_learn)
 
     def func_activation(self, net):
         if net >= 0:
@@ -31,7 +33,13 @@ class Network:
             return 0
 
     def func_activation_2(self, net):
-        return 1/2 * (net / (1 + abs(net)) + 1)
+        # return 1/2 * (net / (1 + abs(net)) + 1)
+        if net >= 0:
+            return 1 if net > 0 else 0
+        else:
+            # return 1 if 0.5 * (1/2 * (net / (1 + abs(net)) + 1)) >= 0.5 else 0
+            return 0.5 * (1/2 * (net / (1 + abs(net)) + 1))
+
 
     # вычисляется радиально-базисная функция для входных данных
     def find_fi(self, inputs: list):
@@ -49,20 +57,20 @@ class Network:
         fi = self.find_fi(inputs)
         for i in range(len(fi)):
             net += self.synapses[i + 1] * fi[i]
-        # return self.func_activation(net + self.synapses[0])
-        return self.func_activation_2(net + self.synapses[0])
+        return self.func_activation(net + self.synapses[0])
+        # return self.func_activation_2(net + self.synapses[0])
 
     # выполняет одну эпоху обучения нейронной сети
     def epoch_1(self, out=True):
         for i in range(len(self.input_vec)):
             self.step_learning_1((self.input_vec[i]))
         self.epoch_rate += 1
-        if out:
-            print()
-            print("Номер Эпохи: ", self.epoch_rate)
-            print("Вектор весов: ", [round(elem, 2) for elem in self.synapses])
-            print("Выходной вектор: ", self.out_vec())
-            print("Суммарная ошибка: ", self.err())
+        # if out:
+            # print()
+            # print("Номер Эпохи: ", self.epoch_rate)
+            # print("Вектор весов: ", [round(elem, 2) for elem in self.synapses])
+            # print("Выходной вектор: ", self.out_vec())
+            # print("Суммарная ошибка: ", self.err())
 
         self.errors.append(self.err())
 
@@ -107,29 +115,6 @@ class Network:
             if self.out_vec()[i] != function(input_vec[i]): err += 1
         return err
 
-    # для сброса сети, вывода результата, подсчета ошибки и поиска оптимального
-    # подмножества входных данных соответственно
-    def find_subset(self):
-        out = input_vector()
-        for i in range(1, 16, 1):
-            subset = list(itertools.combinations(out, i))
-            print("Размер подмножества: ", len(subset))
-            for j in subset:
-                self.reset_net()
-                self.input_vec = j
-                k = 0
-                while (self.err() > 0 and k < 20):
-                    self.epoch_1(False)
-                    k += 1
-                if (self.err() == 0):
-                    buf = j
-                    print("Новое подмножество найдено: {}".format(j))
-                    print("Количество эпох: {}".format(self.epoch_rate))
-                    print()
-                    return buf
-                    break
-        return buf
-
 # определена логическая функция, которая вычисляется на входных данных
 def function(x: list):
     # (!x1 + x3) * x2 + x2 * x4
@@ -149,18 +134,84 @@ def input_vector():
 
 
 def main():
-    Net = Network([0, 0, 0, 0], RFB_NETS, NORM_LEARNING)
-    i = 0
-    while Net.err() > 0:
-        Net.epoch_1()
-        i += 1
+    X = [0]*16
+    for i in range(16):
+        X[i] = [0]*4
+    X = ([0, 0, 0, 0],
+        [0, 0, 0, 1],
+        [0, 0, 1, 0],
+        [0, 0, 1, 1],
+        [0, 1, 0, 0],
+        [0, 1, 0, 1],
+        [0, 1, 1, 0],
+        [0, 1, 1, 1],
+        [1, 0, 0, 0],
+        [1, 0, 0, 1],
+        [1, 0, 1, 0],
+        [1, 0, 1, 1],
+        [1, 1, 0, 0],
+        [1, 1, 0, 1],
+        [1, 1, 1, 0],
+        [1, 1, 1, 1])
 
-    x = [i for i in range(1, len(Net.errors) + 1)]
-    y = Net.errors
-    plt.plot(x, y)
-    plt.plot(x, y, 'bo')
-    plt.show()
+    Net_true_array = []
+    Net_true_array_size_start = 0
+    Net_true_array_size_end = 0
 
+    for i1 in range(16):
+        for i2 in range(16):
+            for i3 in range(16):
+                Net_true_array_size_end += 1
+
+    for i1 in range(16):
+        for i2 in range(16):
+            for i3 in range(16):
+                my_file = open("result\_txt\Intelligent_information_security_technologies_lab1_info_%s.txt" % (Net_true_array_size_start), "w")
+                RFB_NETS =[X[i1], X[i2], X[i3]]
+
+                print("Шаг %s/%s" % (Net_true_array_size_start, Net_true_array_size_end))
+                print(RFB_NETS)
+
+                Net = Network([0, 0, 0, 0], RFB_NETS, NORM_LEARNING)
+                i = 0
+                while Net.err() > 0 and Net.epoch_rate <= 30:
+                    Net.epoch_1()
+                    i += 1
+                if Net.epoch_rate < 30:
+                    print("Результат записи: успешно")
+                    Net_true_array.append([Net.epoch_rate, RFB_NETS])
+                    my_file.write("Шаг: %s\nДанные (Net.epoch_rate, RFB_NETS): %s, %s" % (Net_true_array_size_start, Net.epoch_rate, RFB_NETS))
+                    my_file.close()
+                else:
+                    print("Результат записи: ошибка")
+                    my_file.close()
+                    os.remove("result\_txt\Intelligent_information_security_technologies_lab1_info_%s.txt" % (Net_true_array_size_start))
+
+                # if Net.epoch_rate < 50 and Net.epoch_rate >= 10:
+                #     x = [i for i in range(1, len(Net.errors) + 1)]
+                #     y = Net.errors
+                #     plt.plot(x, y)
+                #     plt.plot(x, y, 'bo')
+                #     plt.savefig('result\_png\Intelligent_information_security_technologies_lab1_info_%s.png' % (Net_true_array_size_start))
+                #     plt.close()
+
+                if Net.epoch_rate < 30 and Net.epoch_rate >= 7:
+                    x = [i for i in range(1, len(Net.errors) + 1)]
+                    y = Net.errors
+                    plt.plot(x, y)
+                    plt.plot(x, y, 'bo')
+                    plt.savefig('result\_true_png\Intelligent_information_security_technologies_lab1_infoTRUE_%s.png' % (Net_true_array_size_start))
+                    plt.close()
+
+                Net_true_array_size_start += 1
+
+    my_file = open("result\Intelligent_information_security_technologies_lab1_infoall.txt", "w")
+    my_file.write("Количество шагов: %s\n" % (Net_true_array_size_end))
+    for Net_true_array_i in range(len(Net_true_array)):
+        print(Net_true_array[Net_true_array_i])
+        my_file.write("\nДанные: %s" % (Net_true_array[Net_true_array_i]))
+
+    my_file.close()
 
 if __name__ == "__main__":
     main()
